@@ -53,14 +53,13 @@ namespace LucasWidget
             public static T[] FromJson<T>(string json) where T : ScrollViewItemData
             {
                 json = "{\"array\": " + json + "}";
-                ScrollViewItemDataJsonWrapper scrollViewItemDataJsonWrapper =
-                    JsonUtility.FromJson<ScrollViewItemDataJsonWrapper>(json);
-                return scrollViewItemDataJsonWrapper.array as T[];
+                JsonWrapper _ = JsonUtility.FromJson<JsonWrapper>(json);
+                return _.array as T[];
             }
         }
 
         [Serializable]
-        public class ScrollViewItemDataJsonWrapper
+        public class JsonWrapper
         {
             public ScrollViewItemData[] array;
         }

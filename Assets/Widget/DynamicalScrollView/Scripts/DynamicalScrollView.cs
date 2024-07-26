@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -27,7 +26,7 @@ namespace LucasWidget
         private ScrollView scrollView;
 
         // Start is called before the first frame update
-        void Start()
+        private void Start()
         {
             StartCoroutine(InitScrollView());
         }
@@ -61,28 +60,18 @@ namespace LucasWidget
             scrollView.UpdateData(items);
         }
 
-
-        private interface IScrollView
+        public partial class ScrollView : IScrollView<ScrollViewItemData>
         {
-            void UpdateData(ScrollViewItemData[] itemDatas);
-            (float, float) CalcContentAndItemHeight();
-            void SetContentHeight(float contentHeight);
-            void UpdateItems();
-            void OnItemClicked(int index);
-        }
+            public ScrollRect ScrollRect { get; set; }
 
-        [Serializable]
-        private class ScrollView : IScrollView
-        {
-            public ScrollRect scrollRect;
-            public ScrollViewItem scrollViewItemPrefab;
-            public ScrollViewItemData[] itemDatas;
-            public ScrollViewItem[] scrollViewItems;
-            private float contentHeight;
-            private float itemHeight;
-            private float padding;
-            public int displayCount;
-            private int exceedCount;
+            public ScrollViewItem ScrollViewItemPrefab { get; set; }
+            public ScrollViewItemData[] ItemDatas { get; set; }
+            public ScrollViewItem[] ScrollViewItems { get; set; }
+            protected float ContentHeight { get; set; }
+            protected float ItemHeight { get; set; }
+            protected float Padding { get; set; }
+            public int DisplayCount { get; set; }
+            protected int ExceedCount { get; set; }
 
             public UnityAction<int> onItemClicked;
 
@@ -96,77 +85,82 @@ namespace LucasWidget
                 onItemClicked -= OnItemClicked;
             }
 
-            public void UpdateData(ScrollViewItemData[] itemDatas)
+            public void Init(ScrollViewItemData[] itemDatas)
             {
-                this.itemDatas = itemDatas;
-                scrollViewItems ??= new ScrollViewItem[displayCount + 1];
+                ItemDatas = itemDatas;
+                ScrollViewItems ??= new ScrollViewItem[DisplayCount + 1];
 
                 (var contentHeight, var itemHeight) = CalcContentAndItemHeight();
 
-                var resetNormalizedPosition = contentHeight < scrollRect.content.sizeDelta.y && exceedCount + displayCount >= itemDatas.Length;
+                var resetNormalizedPosition = contentHeight < ScrollRect.content.sizeDelta.y && ExceedCount + DisplayCount >= itemDatas.Length;
 
-                (this.itemHeight, this.contentHeight) = (itemHeight, contentHeight);
+                (ItemHeight, ContentHeight) = (itemHeight, contentHeight);
 
-                SetContentHeight(this.contentHeight);
+                SetContentHeight(ContentHeight);
 
                 if (resetNormalizedPosition)
-                    scrollRect.verticalNormalizedPosition = 0;
+                    ScrollRect.verticalNormalizedPosition = 0;
 
-                for (var i = 0; i < displayCount + 1; i++)
+                for (var i = 0; i < DisplayCount + 1; i++)
                 {
                     var index = i;
-                    if (scrollViewItems[index] == null)
-                        scrollViewItems[index] = Instantiate(scrollViewItemPrefab, scrollRect.content);
+                    if (ScrollViewItems[index] == null)
+                        ScrollViewItems[index] = Instantiate(ScrollViewItemPrefab, ScrollRect.content);
 
-                    var rectTransform = scrollViewItems[index].GetRectTransform();
+                    var rectTransform = ScrollViewItems[index].GetRectTransform();
                     var itemSize = rectTransform.sizeDelta;
                     rectTransform.sizeDelta = new Vector2(itemSize.x, itemHeight);
-                    var targetPosY = i * (padding + itemHeight);
+                    var targetPosY = i * (Padding + itemHeight);
                     var itemPos = rectTransform.anchoredPosition;
                     rectTransform.anchoredPosition = new Vector2(itemPos.x, -targetPosY);
 
-                    scrollViewItems[index].SetNumberText($"{exceedCount + i + 1}");
-                    scrollViewItems[index].SetNameText($"Button[{exceedCount + i + 1}]");
-                    scrollViewItems[index].SetDescriptionText($"Description[{exceedCount + i + 1}]");
-                    scrollViewItems[index].RegisterButtonEvent(() => {
-                        onItemClicked?.Invoke(exceedCount + index);
+                    ScrollViewItems[index].SetNumberText($"{ExceedCount + i + 1}");
+                    ScrollViewItems[index].SetNameText($"Button[{ExceedCount + i + 1}]");
+                    ScrollViewItems[index].SetDescriptionText($"Description[{ExceedCount + i + 1}]");
+                    ScrollViewItems[index].RegisterButtonEvent(() => {
+                        onItemClicked?.Invoke(ExceedCount + index);
                     });
                 }
-                UpdateItems();
-                scrollRect.onValueChanged.AddListener(v => UpdateItems());
+
+                ScrollRect.onValueChanged.AddListener(v => UpdateItems());
             }
 
-            public (float, float) CalcContentAndItemHeight()
+            public void UpdateData(ScrollViewItemData[] itemDatas)
+            {                
+                UpdateItems();
+            }
+
+            private (float, float) CalcContentAndItemHeight()
             {
-                var viewportHeight = scrollRect.viewport.rect.height;
-                var itemHeight = (viewportHeight - (displayCount - 1) * padding) / (displayCount);
-                var contentHeight = (itemDatas.Length - 1) * padding + itemDatas.Length * itemHeight;
+                var viewportHeight = ScrollRect.viewport.rect.height;
+                var itemHeight = (viewportHeight - (DisplayCount - 1) * Padding) / (DisplayCount);
+                var contentHeight = (ItemDatas.Length - 1) * Padding + ItemDatas.Length * itemHeight;
                 return (contentHeight, itemHeight);
             }
 
-            public void SetContentHeight(float contentHeight)
+            private void SetContentHeight(float contentHeight)
             {
-                var contentSize = scrollRect.content.sizeDelta;
-                scrollRect.content.sizeDelta = new Vector2(contentSize.x, contentHeight);
+                var contentSize = ScrollRect.content.sizeDelta;
+                ScrollRect.content.sizeDelta = new Vector2(contentSize.x, contentHeight);
             }
 
             public void UpdateItems()
             {
-                var contentPos = scrollRect.content.anchoredPosition;
-                exceedCount = Mathf.CeilToInt((contentPos.y - itemHeight) / (itemHeight + padding));
-                exceedCount = Mathf.Clamp(exceedCount, 0, itemDatas.Length - (displayCount + 1));
-                var offsetPosY = (itemHeight + padding) * exceedCount;
-                for (int i = 0; i < displayCount + 1; i++)
+                var contentPos = ScrollRect.content.anchoredPosition;
+                ExceedCount = Mathf.CeilToInt((contentPos.y - ItemHeight) / (ItemHeight + Padding));
+                ExceedCount = Mathf.Clamp(ExceedCount, 0, ItemDatas.Length - (DisplayCount + 1));
+                var offsetPosY = (ItemHeight + Padding) * ExceedCount;
+                for (int i = 0; i < DisplayCount + 1; i++)
                 {
-                    var scrollViewItem = scrollViewItems[i];
+                    var scrollViewItem = ScrollViewItems[i];
                     var rectTransform = scrollViewItem.GetRectTransform();
-                    var originPosY = i * (padding + itemHeight);
+                    var originPosY = i * (Padding + ItemHeight);
                     rectTransform.anchoredPosition = Vector2.up * -(offsetPosY + originPosY);
-                    scrollViewItem.GetComponentInChildren<Text>().text = $"Button[{exceedCount + i + 1}]";
+                    scrollViewItem.GetComponentInChildren<Text>().text = $"Button[{ExceedCount + i + 1}]";
 
-                    scrollViewItem.SetNumberText($"{exceedCount + i + 1}");
-                    scrollViewItem.SetNameText($"Button[{exceedCount + i + 1}]");
-                    scrollViewItem.SetDescriptionText($"Description[{exceedCount + i + 1}]");
+                    scrollViewItem.SetNumberText($"{ExceedCount + i + 1}");
+                    scrollViewItem.SetNameText($"Button[{ExceedCount + i + 1}]");
+                    scrollViewItem.SetDescriptionText($"Description[{ExceedCount + i + 1}]");
                 }
             }
 
@@ -179,13 +173,15 @@ namespace LucasWidget
             {
                 ScrollView scrollView = new()
                 {
-                    scrollRect = scrollRect,
-                    scrollViewItemPrefab = scrollViewItemPrefab,
-                    itemDatas = itemDatas,
-                    displayCount = displayCount,
-                    padding = padding,
+                    ScrollRect = scrollRect,
+                    ScrollViewItemPrefab = scrollViewItemPrefab,
+                    ItemDatas = itemDatas,
+                    DisplayCount = displayCount,
+                    Padding = padding,
                 };
-                scrollView.UpdateData(scrollView.itemDatas);
+
+                scrollView.Init(scrollView.ItemDatas);
+                scrollView.UpdateData(scrollView.ItemDatas);
                 return scrollView;
             }
         }
