@@ -1,4 +1,4 @@
-using System;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -15,20 +15,7 @@ namespace LucasWidget
 
         public Button itemButton;
 
-        public void SetNumberText(string value)
-        {
-            numberText.text = value;
-        }
-
-        public void SetNameText(string value)
-        {
-            nameText.text = value;
-        }
-
-        public void SetDescriptionText(string value)
-        {
-            descriptionText.text = value;
-        }
+        private ScrollViewItemData ScrollViewItemData { get; set; }
 
         public void RegisterButtonEvent(UnityAction unityAction)
         {
@@ -42,34 +29,12 @@ namespace LucasWidget
             return gameObject.GetComponent<RectTransform>();
         }
 
-        [Serializable]
-        public class ScrollViewItemDataJsonHelper
+        public void SetData(ScrollViewItemData scrollViewItemData)
         {
-            public static string ToJson<T>(T scrollViewItemData) where T : ScrollViewItemData
-            {
-                return JsonUtility.ToJson(scrollViewItemData);
-            }
-
-            public static T[] FromJson<T>(string json) where T : ScrollViewItemData
-            {
-                json = "{\"array\": " + json + "}";
-                JsonWrapper _ = JsonUtility.FromJson<JsonWrapper>(json);
-                return _.array as T[];
-            }
-        }
-
-        [Serializable]
-        public class JsonWrapper
-        {
-            public ScrollViewItemData[] array;
-        }
-
-        [Serializable]
-        public class ScrollViewItemData
-        {
-            public int number;
-            public string name;
-            public string description;
+            ScrollViewItemData = scrollViewItemData;
+            numberText.text = ScrollViewItemData.number.ToString();
+            nameText.text = ScrollViewItemData.name;
+            descriptionText.text = ScrollViewItemData.description;
         }
     }
 }

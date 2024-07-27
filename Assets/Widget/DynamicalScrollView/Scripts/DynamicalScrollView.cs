@@ -1,8 +1,9 @@
+using System;
 using System.Collections;
+using System.ComponentModel;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
-using static LucasWidget.ScrollViewItem;
 
 namespace LucasWidget
 {
@@ -18,10 +19,7 @@ namespace LucasWidget
         private int dataCount = 100;
 
         [SerializeField]
-        private int displayCount = 8;
-
-        [SerializeField]
-        private float padding = 10;
+        private float padding = 5;
 
         private ScrollView scrollView;
 
@@ -36,10 +34,9 @@ namespace LucasWidget
             yield return new WaitForEndOfFrame();
             ScrollViewItemData[] items = new ScrollViewItemData[dataCount];
             for (var i = 0; i < items.Length; i++)
-            {
-                items[i] = new() { description = $"Button[{i + 1}]" };
-            }
-            scrollView = ScrollView.ScrollViewDataBuild(scrollRect, scrollViewItemPrefab, items, displayCount, padding);
+                items[i] = new() { number = i + 1, name = $"Button[{i + 1}]", description = $"Description[{i + 1}]" };
+
+            scrollView = ScrollView.ScrollViewDataBuild(scrollRect, scrollViewItemPrefab, items, padding);
         }
 
         public void SetScrollViewItemData50()
@@ -60,17 +57,24 @@ namespace LucasWidget
             scrollView.UpdateData(items);
         }
 
-        public partial class ScrollView : IScrollView<ScrollViewItemData>
+        public class ScrollView : IScrollView<ScrollViewItemData>
         {
             public ScrollRect ScrollRect { get; set; }
 
             public ScrollViewItem ScrollViewItemPrefab { get; set; }
+
             public ScrollViewItemData[] ItemDatas { get; set; }
+
             public ScrollViewItem[] ScrollViewItems { get; set; }
+
             protected float ContentHeight { get; set; }
+
             protected float ItemHeight { get; set; }
+
             protected float Padding { get; set; }
+
             public int DisplayCount { get; set; }
+
             protected int ExceedCount { get; set; }
 
             public UnityAction<int> onItemClicked;
@@ -88,18 +92,8 @@ namespace LucasWidget
             public void Init(ScrollViewItemData[] itemDatas)
             {
                 ItemDatas = itemDatas;
+
                 ScrollViewItems ??= new ScrollViewItem[DisplayCount + 1];
-
-                (var contentHeight, var itemHeight) = CalcContentAndItemHeight();
-
-                var resetNormalizedPosition = contentHeight < ScrollRect.content.sizeDelta.y && ExceedCount + DisplayCount >= itemDatas.Length;
-
-                (ItemHeight, ContentHeight) = (itemHeight, contentHeight);
-
-                SetContentHeight(ContentHeight);
-
-                if (resetNormalizedPosition)
-                    ScrollRect.verticalNormalizedPosition = 0;
 
                 for (var i = 0; i < DisplayCount + 1; i++)
                 {
@@ -107,35 +101,27 @@ namespace LucasWidget
                     if (ScrollViewItems[index] == null)
                         ScrollViewItems[index] = Instantiate(ScrollViewItemPrefab, ScrollRect.content);
 
-                    var rectTransform = ScrollViewItems[index].GetRectTransform();
-                    var itemSize = rectTransform.sizeDelta;
-                    rectTransform.sizeDelta = new Vector2(itemSize.x, itemHeight);
-                    var targetPosY = i * (Padding + itemHeight);
-                    var itemPos = rectTransform.anchoredPosition;
-                    rectTransform.anchoredPosition = new Vector2(itemPos.x, -targetPosY);
-
-                    ScrollViewItems[index].SetNumberText($"{ExceedCount + i + 1}");
-                    ScrollViewItems[index].SetNameText($"Button[{ExceedCount + i + 1}]");
-                    ScrollViewItems[index].SetDescriptionText($"Description[{ExceedCount + i + 1}]");
                     ScrollViewItems[index].RegisterButtonEvent(() => {
                         onItemClicked?.Invoke(ExceedCount + index);
                     });
                 }
 
+                UpdateItems();
+
                 ScrollRect.onValueChanged.AddListener(v => UpdateItems());
             }
 
             public void UpdateData(ScrollViewItemData[] itemDatas)
-            {                
+            {
+                ItemDatas = itemDatas;
                 UpdateItems();
             }
 
-            private (float, float) CalcContentAndItemHeight()
+            private void CalcContentAndItemHeight(out float contentHeight, out float itemHeight)
             {
                 var viewportHeight = ScrollRect.viewport.rect.height;
-                var itemHeight = (viewportHeight - (DisplayCount - 1) * Padding) / (DisplayCount);
-                var contentHeight = (ItemDatas.Length - 1) * Padding + ItemDatas.Length * itemHeight;
-                return (contentHeight, itemHeight);
+                itemHeight = (viewportHeight - (DisplayCount - 1) * Padding) / (DisplayCount);
+                contentHeight = (ItemDatas.Length - 1) * Padding + ItemDatas.Length * itemHeight;
             }
 
             private void SetContentHeight(float contentHeight)
@@ -144,7 +130,7 @@ namespace LucasWidget
                 ScrollRect.content.sizeDelta = new Vector2(contentSize.x, contentHeight);
             }
 
-            public void UpdateItems()
+            private void UpdateItems()
             {
                 var contentPos = ScrollRect.content.anchoredPosition;
                 ExceedCount = Mathf.CeilToInt((contentPos.y - ItemHeight) / (ItemHeight + Padding));
@@ -156,17 +142,27 @@ namespace LucasWidget
                     var rectTransform = scrollViewItem.GetRectTransform();
                     var originPosY = i * (Padding + ItemHeight);
                     rectTransform.anchoredPosition = Vector2.up * -(offsetPosY + originPosY);
-                    scrollViewItem.GetComponentInChildren<Text>().text = $"Button[{ExceedCount + i + 1}]";
 
-                    scrollViewItem.SetNumberText($"{ExceedCount + i + 1}");
-                    scrollViewItem.SetNameText($"Button[{ExceedCount + i + 1}]");
-                    scrollViewItem.SetDescriptionText($"Description[{ExceedCount + i + 1}]");
+                    ScrollViewItems[i].SetData(ItemDatas[ExceedCount + i]);
                 }
+
+                CalcContentAndItemHeight(out var contentHeight, out var itemHeight);
+                var resetNormalizedPosition = contentHeight < ContentHeight;
+                (ItemHeight, ContentHeight) = (itemHeight, contentHeight);
+                SetContentHeight(ContentHeight);
+                if (resetNormalizedPosition)
+                    ScrollRect.verticalNormalizedPosition = 0;
             }
 
             public void OnItemClicked(int index)
             {
-                Debug.Log($"Current index: {index}");
+                Debug.Log($"Item index: {index}");
+            }
+
+            public static ScrollView ScrollViewDataBuild(ScrollRect scrollRect, ScrollViewItem scrollViewItemPrefab, ScrollViewItemData[] itemDatas, float padding)
+            {
+                var displayCount = Mathf.CeilToInt(scrollRect.viewport.rect.height / (scrollViewItemPrefab.GetRectTransform().rect.height + padding));
+                return ScrollViewDataBuild(scrollRect, scrollViewItemPrefab, itemDatas, displayCount, padding);
             }
 
             public static ScrollView ScrollViewDataBuild(ScrollRect scrollRect, ScrollViewItem scrollViewItemPrefab, ScrollViewItemData[] itemDatas, int displayCount, float padding)
@@ -181,7 +177,6 @@ namespace LucasWidget
                 };
 
                 scrollView.Init(scrollView.ItemDatas);
-                scrollView.UpdateData(scrollView.ItemDatas);
                 return scrollView;
             }
         }

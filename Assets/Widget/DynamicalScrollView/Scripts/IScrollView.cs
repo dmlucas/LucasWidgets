@@ -7,8 +7,9 @@ namespace LucasWidget
     public interface IScrollView<T>
     {
         void Init(T[] itemDatas);
+
         void UpdateData(T[] itemDatas);
-        void UpdateItems();
+
         void OnItemClicked(int index);
     }
 }
