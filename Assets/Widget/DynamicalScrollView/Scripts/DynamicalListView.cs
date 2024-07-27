@@ -1,71 +1,69 @@
-using System;
+using Newtonsoft.Json;
 using System.Collections;
-using System.ComponentModel;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace LucasWidget
 {
-    public class DynamicalScrollView : MonoBehaviour
+    public class DynamicalListView : MonoBehaviour
     {
         [SerializeField]
         private ScrollRect scrollRect;
 
         [SerializeField]
-        private ScrollViewItem scrollViewItemPrefab;
-
-        [SerializeField]
-        private int dataCount = 100;
+        private ListViewItem listViewItemPrefab;
 
         [SerializeField]
         private float padding = 5;
 
-        private ScrollView scrollView;
+        private IListView<ListViewItemData> listView;
 
         // Start is called before the first frame update
         private void Start()
         {
-            StartCoroutine(InitScrollView());
+            StartCoroutine(InitListView());
         }
 
-        private IEnumerator InitScrollView()
+        private IEnumerator InitListView()
         {
             yield return new WaitForEndOfFrame();
-            ScrollViewItemData[] items = new ScrollViewItemData[dataCount];
-            for (var i = 0; i < items.Length; i++)
-                items[i] = new() { number = i + 1, name = $"Button[{i + 1}]", description = $"Description[{i + 1}]" };
+            ListViewItemData[] itemDatas = GenerateDatas(30);
 
-            scrollView = ScrollView.ScrollViewDataBuild(scrollRect, scrollViewItemPrefab, items, padding);
+            // Test Serialize and Deserialize
+            var json = JsonConvert.SerializeObject(itemDatas);
+            var _itemDatas = JsonConvert.DeserializeObject<ListViewItemData[]>(json);
+
+            listView = ListView.ListViewDataBuild(scrollRect, listViewItemPrefab, _itemDatas, padding);
         }
 
-        public void SetScrollViewItemData50()
+        public void SetListViewItemData50()
         {
-            ScrollViewItemData[] items = new ScrollViewItemData[dataCount / 2];
-            for (var i = 0; i < items.Length; i++)
-                items[i] = new() { number = i + 1, name = $"Button[{i + 1}]", description = $"Description[{i + 1}]" };
-
-            scrollView.UpdateData(items);
+            listView.UpdateData(GenerateDatas(50));
         }
 
-        public void SetScrollViewItemData100()
+        public void SetListViewItemData100()
         {
-            ScrollViewItemData[] items = new ScrollViewItemData[dataCount];
-            for (var i = 0; i < items.Length; i++)
-                items[i] = new() { number = i + 1, name = $"Button[{i + 1}]", description = $"Description[{i + 1}]" };
-
-            scrollView.UpdateData(items);
+            listView.UpdateData(GenerateDatas(100));
         }
 
-        public class ScrollView : IScrollView<ScrollViewItemData>
+        public ListViewItemData[] GenerateDatas(int dataCount)
+        {
+            ListViewItemData[] items = new ListViewItemData[dataCount];
+            for (var i = 0; i < items.Length; i++)
+                items[i] = new() { Number = i + 1, Name = $"Button[{i + 1}]", Description = $"Description[{i + 1}]" };
+            return items;
+        }
+
+        public class ListView : IListView<ListViewItemData>
         {
             public ScrollRect ScrollRect { get; set; }
 
-            public ScrollViewItem ScrollViewItemPrefab { get; set; }
+            public ListViewItem ListViewItemPrefab { get; set; }
 
-            public ScrollViewItemData[] ItemDatas { get; set; }
+            public ListViewItemData[] ItemDatas { get; set; }
 
-            public ScrollViewItem[] ScrollViewItems { get; set; }
+            public ListViewItem[] ViewItems { get; set; }
 
             protected float ContentHeight { get; set; }
 
@@ -79,29 +77,29 @@ namespace LucasWidget
 
             public UnityAction<int> onItemClicked;
 
-            public ScrollView()
+            public ListView()
             {
                 onItemClicked += OnItemClicked;
             }
 
-            ~ScrollView()
+            ~ListView()
             {
                 onItemClicked -= OnItemClicked;
             }
 
-            public void Init(ScrollViewItemData[] itemDatas)
+            public void Init(ListViewItemData[] itemDatas)
             {
                 ItemDatas = itemDatas;
 
-                ScrollViewItems ??= new ScrollViewItem[DisplayCount + 1];
+                ViewItems ??= new ListViewItem[DisplayCount + 1];
 
                 for (var i = 0; i < DisplayCount + 1; i++)
                 {
                     var index = i;
-                    if (ScrollViewItems[index] == null)
-                        ScrollViewItems[index] = Instantiate(ScrollViewItemPrefab, ScrollRect.content);
+                    if (ViewItems[index] == null)
+                        ViewItems[index] = Instantiate(ListViewItemPrefab, ScrollRect.content);
 
-                    ScrollViewItems[index].RegisterButtonEvent(() => {
+                    ViewItems[index].RegisterButtonEvent(() => {
                         onItemClicked?.Invoke(ExceedCount + index);
                     });
                 }
@@ -111,10 +109,15 @@ namespace LucasWidget
                 ScrollRect.onValueChanged.AddListener(v => UpdateItems());
             }
 
-            public void UpdateData(ScrollViewItemData[] itemDatas)
+            public void UpdateData(ListViewItemData[] itemDatas)
             {
                 ItemDatas = itemDatas;
                 UpdateItems();
+            }
+
+            public void OnItemClicked(int index)
+            {
+                Debug.Log($"Item index: {index}");
             }
 
             private void CalcContentAndItemHeight(out float contentHeight, out float itemHeight)
@@ -138,12 +141,12 @@ namespace LucasWidget
                 var offsetPosY = (ItemHeight + Padding) * ExceedCount;
                 for (int i = 0; i < DisplayCount + 1; i++)
                 {
-                    var scrollViewItem = ScrollViewItems[i];
-                    var rectTransform = scrollViewItem.GetRectTransform();
+                    var ListViewItem = ViewItems[i];
+                    var rectTransform = ListViewItem.GetRectTransform();
                     var originPosY = i * (Padding + ItemHeight);
                     rectTransform.anchoredPosition = Vector2.up * -(offsetPosY + originPosY);
 
-                    ScrollViewItems[i].SetData(ItemDatas[ExceedCount + i]);
+                    ViewItems[i].SetData(ItemDatas[ExceedCount + i]);
                 }
 
                 CalcContentAndItemHeight(out var contentHeight, out var itemHeight);
@@ -154,30 +157,25 @@ namespace LucasWidget
                     ScrollRect.verticalNormalizedPosition = 0;
             }
 
-            public void OnItemClicked(int index)
+            public static ListView ListViewDataBuild(ScrollRect scrollRect, ListViewItem ListViewItemPrefab, ListViewItemData[] itemDatas, float padding)
             {
-                Debug.Log($"Item index: {index}");
+                var displayCount = Mathf.CeilToInt(scrollRect.viewport.rect.height / (ListViewItemPrefab.GetRectTransform().rect.height + padding));
+                return ListViewDataBuild(scrollRect, ListViewItemPrefab, itemDatas, displayCount, padding);
             }
 
-            public static ScrollView ScrollViewDataBuild(ScrollRect scrollRect, ScrollViewItem scrollViewItemPrefab, ScrollViewItemData[] itemDatas, float padding)
+            public static ListView ListViewDataBuild(ScrollRect scrollRect, ListViewItem ListViewItemPrefab, ListViewItemData[] itemDatas, int displayCount, float padding)
             {
-                var displayCount = Mathf.CeilToInt(scrollRect.viewport.rect.height / (scrollViewItemPrefab.GetRectTransform().rect.height + padding));
-                return ScrollViewDataBuild(scrollRect, scrollViewItemPrefab, itemDatas, displayCount, padding);
-            }
-
-            public static ScrollView ScrollViewDataBuild(ScrollRect scrollRect, ScrollViewItem scrollViewItemPrefab, ScrollViewItemData[] itemDatas, int displayCount, float padding)
-            {
-                ScrollView scrollView = new()
+                ListView ListView = new()
                 {
                     ScrollRect = scrollRect,
-                    ScrollViewItemPrefab = scrollViewItemPrefab,
+                    ListViewItemPrefab = ListViewItemPrefab,
                     ItemDatas = itemDatas,
                     DisplayCount = displayCount,
                     Padding = padding,
                 };
 
-                scrollView.Init(scrollView.ItemDatas);
-                return scrollView;
+                ListView.Init(ListView.ItemDatas);
+                return ListView;
             }
         }
     }

@@ -1,10 +1,10 @@
 namespace LucasWidget
 {
     /// <summary>
-    /// 
+    /// IListView
     /// </summary>
     /// <typeparam name="T">Data type</typeparam>
-    public interface IScrollView<T>
+    public interface IListView<T> where T : IListViewItemData
     {
         void Init(T[] itemDatas);
 

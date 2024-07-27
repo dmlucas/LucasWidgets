@@ -1,13 +1,14 @@
-using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace LucasWidget
 {
-    public class ScrollViewItem : MonoBehaviour
+    public class ListViewItem : MonoBehaviour
     {
         public Text numberText;
+
+        public Image thumbImage;
 
         public Text nameText;
 
@@ -15,7 +16,7 @@ namespace LucasWidget
 
         public Button itemButton;
 
-        private ScrollViewItemData ScrollViewItemData { get; set; }
+        private ListViewItemData ItemData { get; set; }
 
         public void RegisterButtonEvent(UnityAction unityAction)
         {
@@ -29,12 +30,16 @@ namespace LucasWidget
             return gameObject.GetComponent<RectTransform>();
         }
 
-        public void SetData(ScrollViewItemData scrollViewItemData)
+        public void SetData(ListViewItemData itemData)
         {
-            ScrollViewItemData = scrollViewItemData;
-            numberText.text = ScrollViewItemData.number.ToString();
-            nameText.text = ScrollViewItemData.name;
-            descriptionText.text = ScrollViewItemData.description;
+            ItemData = itemData;
+            numberText.text = ItemData.Number.ToString();
+
+            if (ItemData.Thumb)
+                thumbImage.overrideSprite = ItemData.Thumb;
+
+            nameText.text = ItemData.Name;
+            descriptionText.text = ItemData.Description;
         }
     }
 }
