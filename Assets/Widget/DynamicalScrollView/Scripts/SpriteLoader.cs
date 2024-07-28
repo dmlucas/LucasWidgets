@@ -5,7 +5,7 @@ using UnityEngine.Events;
 using UnityEngine.Networking;
 using UnityEngine;
 
-namespace LucasWidget
+namespace LucasWidget.ListView
 {
     public static class SpriteLoader
     {
