@@ -20,13 +20,15 @@ namespace LucasWidget.ListView
 
         public UnityAction<ViewModel> onClicked;
 
-        private void Start()
+        private void Awake()
         {
             viewModel ??= new ViewModel(new Model());
             viewModel.PropertyChanged += ViewModel_PropertyChanged;
-            itemButton.onClick.AddListener(() => {
-                Debug.Log($"Number: {viewModel.Number}");
+        }
 
+        private void Start()
+        {
+            itemButton.onClick.AddListener(() => {
                 onClicked?.Invoke(viewModel);
             });
         }
@@ -48,17 +50,17 @@ namespace LucasWidget.ListView
                     break;
 
                 case nameof(ViewModel.ThumbUrl):
-
+                    StartCoroutine(SpriteLoader.Load(viewModel.ThumbUrl, sprite => { viewModel.Thumb = sprite; }));
                     break;
 
                 case nameof(ViewModel.Thumb):
                     thumbImage.overrideSprite = viewModel.Thumb;
                     break;
-                    
             }
         }
 
-        public Vector2 Size { 
+        public Vector2 Size 
+        { 
             get { return gameObject.GetComponent<RectTransform>().sizeDelta; }
             set { gameObject.GetComponent<RectTransform>().sizeDelta = value; } 
         }
@@ -69,13 +71,13 @@ namespace LucasWidget.ListView
             set { gameObject.GetComponent<RectTransform>().anchoredPosition = value; }
         }
 
-        public void SetData(ViewModel viewModel)
+        public void SetData(Model model)
         {
-            this.viewModel ??= new ViewModel(new Model());
-            this.viewModel.Number = viewModel.Number;
-            this.viewModel.Name = viewModel.Name;
-            this.viewModel.Description = viewModel.Description;
-            this.viewModel.ThumbUrl = viewModel.ThumbUrl;
+            viewModel ??= new ViewModel(new Model());
+            viewModel.Number = model.Number;
+            viewModel.Name = model.Name;
+            viewModel.Description = model.Description;
+            viewModel.ThumbUrl = model.ThumbUrl;
         }
     }
 }

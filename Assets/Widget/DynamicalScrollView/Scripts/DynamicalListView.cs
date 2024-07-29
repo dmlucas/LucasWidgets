@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace LucasWidget.ListView
@@ -27,18 +28,17 @@ namespace LucasWidget.ListView
         private IEnumerator InitListView()
         {
             yield return new WaitForEndOfFrame();
-            ViewModel[] viewModels = GenerateDatas(30);
+            Model[] models = GenerateDatas(30);
 
             // Test Serialize and Deserialize
-            //ViewModel[] _viewModels = new ViewModel[viewModels.Length];
-            //for (int i = 0; i < viewModels.Length; i++)
-            //{
-            //    var json = JsonConvert.SerializeObject(viewModels[i].model);
-            //    var model = JsonConvert.DeserializeObject<Model>(json);
-            //    _viewModels[i] = new ViewModel(model);
-            //}
+            Model[] _models = new Model[models.Length];
+            for (int i = 0; i < models.Length; i++)
+            {
+                var json = JsonConvert.SerializeObject(models[i]);
+                _models[i] = JsonConvert.DeserializeObject<Model>(json);
+            }
 
-            listView = ListView.ListViewDataBuild(scrollRect, viewPrefab, viewModels, padding);
+            listView = ListView.ListViewBuild(scrollRect, viewPrefab, models, padding);
         }
 
         public void SetListViewItemData50()
@@ -51,15 +51,15 @@ namespace LucasWidget.ListView
             listView.UpdateData(GenerateDatas(100));
         }
 
-        public ViewModel[] GenerateDatas(int dataCount)
+        public Model[] GenerateDatas(int dataCount)
         {
-            ViewModel[] items = new ViewModel[dataCount];
-            for (var i = 0; i < items.Length; i++)
-                items[i] = new ViewModel(new() { Number = i + 1, Name = $"Button[{i + 1}]", Description = $"Description[{i + 1}]" });
-            return items;
+            Model[] models = new Model[dataCount];
+            for (var i = 0; i < models.Length; i++)
+                models[i] = new() { Number = i + 1, Name = $"Button[{i + 1}]", Description = $"Description[{i + 1}]", ThumbUrl = "https://www.imatest.com/wp-content/uploads/2020/06/LabReflectiveModule-3-2-RESIZED.jpg" };
+            return models;
         }
 
-        public class ListView
+        public class ListView : IListView<Model>
         {
             public ScrollRect ScrollRect { get; set; }
 
@@ -67,7 +67,7 @@ namespace LucasWidget.ListView
 
             public View[] Views { get; set; }
 
-            public ViewModel[] ViewModels { get; set; }
+            protected Model[] Models { get; set; }
 
             protected float ContentHeight { get; set; }
 
@@ -79,26 +79,30 @@ namespace LucasWidget.ListView
 
             protected int ExceedCount { get; set; }
 
-            private void Init(ViewModel[] viewModels)
-            {
-                ViewModels = viewModels;
+            public UnityAction<Model> _onItemClicked;
 
+            public UnityAction<Model> onItemClicked { get => _onItemClicked; set { _onItemClicked = value; } }
+
+            public void Init(Model[] models)
+            {
                 Views ??= new View[DisplayCount + 1];
                 for (var i = 0; i < DisplayCount + 1; i++)
                 {
                     var index = i;
                     if (Views[index] == null)
+                    {
                         Views[index] = Instantiate(ViewPrefab, ScrollRect.content);
+                        Views[index].onClicked += _ => { onItemClicked?.Invoke(_.model); };
+                    }
                 }
 
-                UpdateItems();
-
+                UpdateData(models);
                 ScrollRect.onValueChanged.AddListener(v => UpdateItems());
             }
 
-            public void UpdateData(ViewModel[] viewModels)
+            public void UpdateData(Model[] models)
             {
-                ViewModels = viewModels;
+                Models = models;
                 UpdateItems();
             }
 
@@ -106,7 +110,7 @@ namespace LucasWidget.ListView
             {
                 var viewportHeight = ScrollRect.viewport.rect.height;
                 itemHeight = (viewportHeight - (DisplayCount - 1) * Padding) / (DisplayCount);
-                contentHeight = (ViewModels.Length - 1) * Padding + ViewModels.Length * itemHeight;
+                contentHeight = (Models.Length - 1) * Padding + Models.Length * itemHeight;
             }
 
             private void SetContentHeight(float contentHeight)
@@ -119,14 +123,14 @@ namespace LucasWidget.ListView
             {
                 var contentPos = ScrollRect.content.anchoredPosition;
                 ExceedCount = Mathf.CeilToInt((contentPos.y - ItemHeight) / (ItemHeight + Padding));
-                ExceedCount = Mathf.Clamp(ExceedCount, 0, ViewModels.Length - (DisplayCount + 1));
+                ExceedCount = Mathf.Clamp(ExceedCount, 0, Models.Length - (DisplayCount + 1));
                 var offsetPosY = (ItemHeight + Padding) * ExceedCount;
                 for (int i = 0; i < DisplayCount + 1; i++)
                 {
                     var ListViewItem = Views[i];
                     var originPosY = i * (Padding + ItemHeight);
                     ListViewItem.Position = Vector2.up * -(offsetPosY + originPosY);
-                    Views[i].SetData(ViewModels[ExceedCount + i]);
+                    Views[i].SetData(Models[ExceedCount + i]);
                 }
 
                 CalcContentAndItemHeight(out var contentHeight, out var itemHeight);
@@ -137,24 +141,24 @@ namespace LucasWidget.ListView
                     ScrollRect.verticalNormalizedPosition = 0;
             }
 
-            public static ListView ListViewDataBuild(ScrollRect scrollRect, View ViewPrefab, ViewModel[] viewModels, float padding)
+            public static ListView ListViewBuild(ScrollRect scrollRect, View ViewPrefab, Model[] models, float padding)
             {
                 var displayCount = Mathf.CeilToInt(scrollRect.viewport.rect.height / (ViewPrefab.Size.y + padding));
-                return ListViewDataBuild(scrollRect, ViewPrefab, viewModels, displayCount, padding);
+                return ListViewBuild(scrollRect, ViewPrefab, models, displayCount, padding);
             }
 
-            public static ListView ListViewDataBuild(ScrollRect scrollRect, View ViewPrefab, ViewModel[] viewModels, int displayCount, float padding)
+            public static ListView ListViewBuild(ScrollRect scrollRect, View ViewPrefab, Model[] models, int displayCount, float padding)
             {
                 ListView ListView = new()
                 {
                     ScrollRect = scrollRect,
                     ViewPrefab = ViewPrefab,
-                    ViewModels = viewModels,
+                    Models = models,
                     DisplayCount = displayCount,
                     Padding = padding,
                 };
 
-                ListView.Init(ListView.ViewModels);
+                ListView.Init(ListView.Models);
                 return ListView;
             }
         }

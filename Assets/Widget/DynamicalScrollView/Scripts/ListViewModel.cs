@@ -58,9 +58,8 @@ namespace LucasWidget.ListView
                 if (model.ThumbUrl != value)
                 {
                     model.ThumbUrl = value;
-                    SpriteLoader.Load(model.ThumbUrl, sprite => { Thumb = sprite; });
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ThumbUrl)));
                 }
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ThumbUrl)));
             }
         }
 
@@ -69,7 +68,7 @@ namespace LucasWidget.ListView
         public Sprite Thumb
         { 
             get { return _thumb; } 
-            private set { _thumb = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumb))); }
+            set { _thumb = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumb))); }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

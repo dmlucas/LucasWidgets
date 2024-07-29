@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace LucasWidget.ListView
 {
-    public static class SpriteLoader
+    public class SpriteLoader
     {
         public static IEnumerator Load(string url, UnityAction<Sprite> success, UnityAction<string> fail = null)
         {
@@ -19,8 +19,11 @@ namespace LucasWidget.ListView
 
             string fileName = "";
             string pngSplit = ".png";
+            string jpgSplit = ".jpg";
             if (url.Contains(pngSplit))
                 fileName = url.Split(pngSplit)[0].Split("/").Last() + pngSplit;
+            else if (url.Contains(jpgSplit))
+                fileName = url.Split(jpgSplit)[0].Split("/").Last() + jpgSplit;
 
             if (string.IsNullOrEmpty(fileName))
             {
@@ -66,5 +69,4 @@ namespace LucasWidget.ListView
             Debug.Log($"Saved in: {filePath}");
         }
     }
-
 }
