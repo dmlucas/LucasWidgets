@@ -415,7 +415,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.0006245848}
+  m_AnchoredPosition: {x: 0, y: 0.000030517578}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &7000007105221209861
@@ -545,7 +545,7 @@ GameObject:
   - component: {fileID: 7000007105326888878}
   - component: {fileID: 7000007105326888879}
   m_Layer: 5
-  m_Name: Dynamical Scroll View
+  m_Name: Dynamical List View
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -654,10 +654,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7905fa53d5713f42a8b060700ecd0ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataCount: 100
   scrollRect: {fileID: 7000007105326888878}
-  scrollViewItemPrefab: {fileID: 2614106107979794273, guid: 5adc8c13679545345b47599a94a62169, type: 3}
-  displayCount: 8
+  listViewItemPrefab: {fileID: 2614106107979794273, guid: 5adc8c13679545345b47599a94a62169, type: 3}
   padding: 5
 --- !u!1 &7000007105447245178
 GameObject:
